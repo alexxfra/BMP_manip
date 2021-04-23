@@ -88,7 +88,7 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
 struct bmp_image* read_bmp(FILE* stream) {
     
     // Create image
-    struct bmp_image *newImage = (struct bmp_image*) calloc(1, sizeof(struct bmp_image));
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
 
     // Load header
     newImage->header = read_bmp_header(stream);
@@ -107,7 +107,7 @@ struct bmp_image* read_bmp(FILE* stream) {
     return newImage;
 }
 
-bool write_bmp(FILE* stream, const struct bmp_image* image){
+bool write_bmp(FILE* stream, const struct bmp_image* image) {
     
     // Check stream
     if (stream == NULL || image == NULL){
@@ -143,7 +143,7 @@ bool write_bmp(FILE* stream, const struct bmp_image* image){
     return true;
 }
 
-void free_bmp_image(struct bmp_image* image){
+void free_bmp_image(struct bmp_image* image) {
 
     free(image->header);
     free(image->data);
@@ -151,10 +151,17 @@ void free_bmp_image(struct bmp_image* image){
 }
 
 // TRANSFORM
-struct bmp_image* flip_horizontally(const struct bmp_image* image){
+struct bmp_image* flip_horizontally(const struct bmp_image* image) {
+
+    // Get size data
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+    size_t pxcount = width * height;
     
-    // Create image
-    struct bmp_image *newImage = (struct bmp_image*) calloc(1, sizeof(struct bmp_image));
+    // Alloc
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
 
     // Copy header
     newImage->header->size = image->header->size;
@@ -167,32 +174,141 @@ struct bmp_image* flip_horizontally(const struct bmp_image* image){
     newImage->header->planes = PLANES;
     newImage->header->image_size = newImage->header->size - OFFSET;
 
-    size_t height = image->header->height;
-    size_t width = image->header->width;
-
     // Flip data horizontally
     for (size_t h = 0; h < height; h++) {
-        for (size_t w = 0; h < width; w++) {
-            newImage->data[h * height + w] = image->data[(h) * height + (width - 1 - w)];
+        for (size_t w = 0; w < width; w++) {
+            newImage->data[(h * width) + w].blue = image->data[(h * width) + (width - 1 - w)].blue;
+            newImage->data[(h * width) + w].red = image->data[(h * width) + (width - 1 - w)].red;
+            newImage->data[(h * width) + w].green = image->data[(h * width) + (width - 1 - w)].green;
+        }
+    }
+    return newImage;
+}
+
+struct bmp_image* flip_vertically(const struct bmp_image* image) {
+    
+    // Get size data
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+    size_t pxcount = width * height;
+    
+    // Alloc
+    printf("Allocating memory for new image");
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
+
+    // Copy header
+    printf("Copying header\n");
+    newImage->header->size = image->header->size;
+    newImage->header->width = image->header->width;
+    newImage->header->height = image->header->height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = newImage->header->size - OFFSET;
+
+    // Flip data vertically
+    for (size_t h = 0; h < height; h++) {
+        for (size_t w = 0; w < width; w++) {
+            newImage->data[(h * width) + w].blue = image->data[((height - 1 - h) * width) + w].blue;
+            newImage->data[(h * width) + w].red = image->data[((height - 1 - h) * width) + w].red;
+            newImage->data[(h * width) + w].green = image->data[((height - 1 - h) * width) + w].green;
+        }
+    }
+    return newImage;
+
+}
+
+struct bmp_image* rotate_right(const struct bmp_image* image) {
+    
+    // Get size data
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+    size_t pxcount = width * height;
+    
+    // Alloc
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
+
+    // Copy header
+    newImage->header->size = image->header->size;
+    newImage->header->width = image->header->width;
+    newImage->header->height = image->header->height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = newImage->header->size - OFFSET;
+
+    // Turn right
+    for (size_t w = 0; w < width; w++) {
+        for (size_t h = 0; h < height; h++) {
+            newImage->data[(h * width) + w].blue = image->data[((height - 1 - h) * width) + w].blue;
+            newImage->data[(h * width) + w].red = image->data[((height - 1 - h) * width) + w].red;
+            newImage->data[(h * width) + w].green = image->data[((height - 1 - h) * width) + w].green;
+        }
+    }
+    return newImage;
+}
+
+struct bmp_image* rotate_left(const struct bmp_image* image) {
+
+    // Get size data
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+    size_t pxcount = width * height;
+    
+    // Alloc
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
+
+    // Copy header
+    newImage->header->size = image->header->size;
+    newImage->header->width = image->header->width;
+    newImage->header->height = image->header->height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = newImage->header->size - OFFSET;
+
+    // Turn left 
+    for (size_t w = 0; w < width; w++) {
+        for (size_t h = 0; h < height; h++) {
+            newImage->data[(h * width) + w].blue = image->data[(h * width) + (width - 1 - w)].blue;
+            newImage->data[(h * width) + w].red = image->data[(h * width) + (width - 1 - w)].red;
+            newImage->data[(h * width) + w].green = image->data[(h * width) + (width - 1 - w)].green;
         }
     }
     return newImage;
 }
 
 int main (void) {
+
+    struct bmp_image *img;
     
-    struct bmp_image *testimg;
+    //Read image
     FILE *testfile = fopen("assets/umbrella.bmp", "rb");
-    testimg = read_bmp(testfile);
+    img = read_bmp(testfile);
     fclose(testfile);
 
-    struct bmp_image *hor = flip_horizontally(testimg);
+    printf("Reading finished \n");
+    
+    printf("Flipping file\n");
+    struct bmp_image *flip;
+    flip = rotate_left(img);
+
     testfile = fopen("assets/testout.bmp", "wb");
-    write_bmp(testfile, hor);
+    write_bmp(testfile, flip);
     fclose(testfile);
 
-    free_bmp_image(testimg);
-    free_bmp_image(hor);
 
     
     
