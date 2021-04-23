@@ -136,6 +136,13 @@ bool write_bmp(FILE* stream, const struct bmp_image* image){
     return true;
 }
 
+void free_bmp_image(struct bmp_image* image){
+
+    free(image->header);
+    free(image->data);
+    free(image);
+}
+
 
 int main (void) {
     
