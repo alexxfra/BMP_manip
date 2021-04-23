@@ -290,24 +290,109 @@ struct bmp_image* rotate_left(const struct bmp_image* image) {
     return newImage;
 }
 
+struct bmp_image* crop(const struct bmp_image* image, const uint32_t start_y, const uint32_t start_x, const uint32_t height, const uint32_t width) {
+    
+    // Get image stats
+    size_t source_width = image->header->width;
+    size_t source_height = image->header->height;
+
+    // Check staring point
+    if (start_y < 0 || start_y >= source_height || start_x < 0 || start_x >= source_width)
+        return NULL;
+
+    // Check crop size
+    if (height < 1 || width < 1)
+        return NULL;
+
+    // Check bounds of crop
+    if (start_y + height > source_height || start_x + width > source_width)
+        return NULL;
+
+
+    // Get size data
+    size_t pxcount = width * height;
+    
+    //Debug
+    printf("Source H: %d\nSource W: %d\n", source_height, source_width);
+    printf("New H: %d\nNew W: %d\n", height, width);
+    printf("start x: %d\nstart y: %d\n", start_x, start_y);
+
+    // Alloc new image
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
+
+    // Create header
+    newImage->header->size = OFFSET + pxcount * 3;
+    newImage->header->width = width;
+    newImage->header->height = height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = pxcount * 3;
+
+    for (size_t h = 0; h < height; h++) {
+        for (size_t w = 0; w < width; w++) {
+            newImage->data[(h * width) + w].blue = image->data[((source_height - start_y - h) * source_width) - (source_width - start_x - w)].blue;
+            newImage->data[(h * width) + w].red = image->data[((source_height - start_y - h) * source_width) - (source_width - start_x - w)].red;
+            newImage->data[(h * width) + w].green = image->data[((source_height - start_y - h) * source_width) - (source_width - start_x - w)].green;
+        }  
+    }
+    return flip_vertically(newImage);
+}
+
+struct bmp_image* extract(const struct bmp_image* image, const char* colors_to_keep) {
+    
+    // Get size data
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+    size_t pxcount = width * height;
+    
+    // Alloc
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
+    newImage->header = (struct bmp_header*) calloc(1,sizeof(struct bmp_header)); 
+    newImage->data = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
+
+    // Copy header
+    newImage->header->size = image->header->size;
+    newImage->header->width = image->header->width;
+    newImage->header->height = image->header->height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = newImage->header->size - OFFSET;
+
+    for (size_t w = 0; w < width; w++) {
+        for (size_t h = 0; h < height; h++) {
+            newImage->data[(h * width) + w].blue = image->data[((height - 1 - h) * width) + w].blue;
+            newImage->data[(h * width) + w].red = image->data[((height - 1 - h) * width) + w].red;
+            newImage->data[(h * width) + w].green = image->data[((height - 1 - h) * width) + w].green;
+        }
+    }
+
+}
+
+
 int main (void) {
 
     struct bmp_image *img;
     
     //Read image
-    FILE *testfile = fopen("assets/umbrella.bmp", "rb");
+    FILE *testfile = fopen("assets/lenna.bmp", "rb");
     img = read_bmp(testfile);
     fclose(testfile);
 
-    printf("Reading finished \n");
-    
-    printf("Flipping file\n");
     struct bmp_image *flip;
-    flip = rotate_left(img);
+    flip = crop(img, 100, 100, 100, 100);
 
     testfile = fopen("assets/testout.bmp", "wb");
     write_bmp(testfile, flip);
     fclose(testfile);
+
 
 
     
