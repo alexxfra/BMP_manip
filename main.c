@@ -1,8 +1,15 @@
 #include "bmp.h"
 #include "transformations.h"
 
+// CONSTS
+#define OFFSET 0x36
+#define DIB_SIZE 0x28
+#define PLANES 0x01
+#define BPP 0x18
+#define TYPE 0x4d42
 
 
+// BMP
 struct bmp_header* read_bmp_header(FILE* stream) {
     
     // Check stream
@@ -27,7 +34,7 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     }
 
     // Check val
-    if (newH->type != 0x4d42) {
+    if (newH->type != TYPE) {
         printf("Error: Corrupted BMP file.");
         free(newH);
         return NULL;
@@ -42,11 +49,11 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     fread(&newH->height, 4, 1, stream);
 
     // Writing constant data
-    newH->offset = 0x36;
-    newH->dib_size = 0x28;
-    newH->planes = 0x01;
-    newH->bpp = 0x18;
-    newH->image_size = newH->size - 0x36;   // OR 0 NOT SURE IF ITS NEEDED YET
+    newH->offset = OFFSET;
+    newH->dib_size = DIB_SIZE;
+    newH->planes = PLANES;
+    newH->bpp = BPP;
+    newH->image_size = newH->size - OFFSET;   // OR 0 NOT SURE IF ITS NEEDED YET
 
     return newH;
 }
@@ -143,6 +150,34 @@ void free_bmp_image(struct bmp_image* image){
     free(image);
 }
 
+// TRANSFORM
+struct bmp_image* flip_horizontally(const struct bmp_image* image){
+    
+    // Create image
+    struct bmp_image *newImage = (struct bmp_image*) calloc(1, sizeof(struct bmp_image));
+
+    // Copy header
+    newImage->header->size = image->header->size;
+    newImage->header->width = image->header->width;
+    newImage->header->height = image->header->height;
+    newImage->header->type = TYPE;
+    newImage->header->offset = OFFSET;
+    newImage->header->dib_size = DIB_SIZE;
+    newImage->header->bpp = BPP;
+    newImage->header->planes = PLANES;
+    newImage->header->image_size = newImage->header->size - OFFSET;
+
+    size_t height = image->header->height;
+    size_t width = image->header->width;
+
+    // Flip data horizontally
+    for (size_t h = 0; h < height; h++) {
+        for (size_t w = 0; h < width; w++) {
+            newImage->data[h * height + w] = image->data[(h) * height + (width - 1 - w)];
+        }
+    }
+    return newImage;
+}
 
 int main (void) {
     
@@ -151,11 +186,19 @@ int main (void) {
     testimg = read_bmp(testfile);
     fclose(testfile);
 
+    struct bmp_image *hor = flip_horizontally(testimg);
     testfile = fopen("assets/testout.bmp", "wb");
-    write_bmp(testfile, testimg);
+    write_bmp(testfile, hor);
     fclose(testfile);
+
+    free_bmp_image(testimg);
+    free_bmp_image(hor);
+
     
     
     return 0;
 }
+
+
+
 
