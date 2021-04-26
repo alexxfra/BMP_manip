@@ -179,7 +179,7 @@ struct bmp_image* crop(const struct bmp_image* image, const uint32_t start_y, co
         }  
     }
     struct bmp_image *ret = flip_vertically(newImage);
-    free(newImage);
+    free_bmp_image(newImage);
 
     return ret;
 }
