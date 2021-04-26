@@ -1,6 +1,6 @@
 # variables 
 CC=gcc 
-CFLAGS=-std=c11 -Wall -Werror -lv 
+CFLAGS=-std=c11 -Wall -Werror -lm 
 LDLIBS=-lm -lcurses 
 OUTPUT=bmp 
 
