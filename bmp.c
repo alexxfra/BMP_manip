@@ -1,6 +1,12 @@
 #include "bmp.h"
 
 struct bmp_header* read_bmp_header(FILE* stream) {
+    
+    // Check stream
+    if (stream == NULL){
+        return NULL;
+    }
+
     // Go to start
     fseek(stream, 0, SEEK_SET);
 
@@ -18,7 +24,7 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     }
 
     // Check val
-    if (newH->type != 0x4d42) {
+    if (newH->type != TYPE) {
         printf("Error: Corrupted BMP file.");
         free(newH);
         return NULL;
@@ -33,18 +39,24 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     fread(&newH->height, 4, 1, stream);
 
     // Writing constant data
-    newH->offset = 0x36;
-    newH->dib_size = 0x28;
-    newH->planes = 0x01;
-    newH->bpp = 0x18;
-    newH->image_size = newH->size - 0x36;   // OR 0 NOT SURE IF ITS NEEDED YET
+    newH->offset = OFFSET;
+    newH->dib_size = DIB_SIZE;
+    newH->planes = PLANES;
+    newH->bpp = BPP;
+    newH->image_size = newH->size - OFFSET;   // OR 0 NOT SURE IF ITS NEEDED YET
 
     return newH;
 }
 
 struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
+    
     // Check header
     if (header == NULL) {
+        return NULL;
+    }
+
+    // Check stream
+    if (stream == NULL){
         return NULL;
     }
 
@@ -56,8 +68,8 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
     fseek(stream, 54, SEEK_SET);
     for (size_t i = 0; i < pxcount; i++) {
         fread(&pxarr[i].blue, 1, 1, stream);
-        fread(&pxarr[i].red, 1, 1, stream);
         fread(&pxarr[i].green, 1, 1, stream);
+        fread(&pxarr[i].red, 1, 1, stream);
     }
 
     return pxarr;
@@ -66,7 +78,7 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
 struct bmp_image* read_bmp(FILE* stream) {
     
     // Create image
-    struct bmp_image *newImage = (struct bmp_image*) calloc(1, sizeof(struct bmp_image));
+    struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
 
     // Load header
     newImage->header = read_bmp_header(stream);
@@ -83,4 +95,47 @@ struct bmp_image* read_bmp(FILE* stream) {
     }
     
     return newImage;
+}
+
+bool write_bmp(FILE* stream, const struct bmp_image* image) {
+    
+    // Check stream
+    if (stream == NULL || image == NULL){
+        return false;
+    }
+    
+    // Write header
+    fwrite(&image->header->type, 2, 1, stream);
+    fwrite(&image->header->size, 4, 1, stream);
+    fwrite(&image->header->reserved1, 2, 1, stream);
+    fwrite(&image->header->reserved2, 2, 1, stream);
+    fwrite(&image->header->offset, 4, 1, stream);
+    fwrite(&image->header->dib_size, 4, 1, stream);
+    fwrite(&image->header->width, 4, 1, stream);
+    fwrite(&image->header->height, 4, 1, stream);
+    fwrite(&image->header->planes, 2, 1, stream);
+    fwrite(&image->header->bpp, 2, 1, stream);
+    fwrite(&image->header->compression, 4, 1, stream);
+    fwrite(&image->header->image_size, 4, 1, stream);
+    fwrite(&image->header->x_ppm, 4, 1, stream);
+    fwrite(&image->header->y_ppm, 4, 1, stream);
+    fwrite(&image->header->num_colors, 4, 1, stream);
+    fwrite(&image->header->important_colors, 4, 1, stream);
+
+    // Write data
+    size_t pxcount = image->header->width * image->header->height;
+
+    for (size_t i = 0; i < pxcount; i++) {
+        fwrite(&image->data[i].blue, 1, 1, stream);
+        fwrite(&image->data[i].green, 1, 1, stream);
+        fwrite(&image->data[i].red, 1, 1, stream);
+    }
+    return true;
+}
+
+void free_bmp_image(struct bmp_image* image) {
+
+    free(image->header);
+    free(image->data);
+    free(image);
 }

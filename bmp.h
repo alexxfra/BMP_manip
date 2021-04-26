@@ -9,6 +9,16 @@
 
 #define PADDING_CHAR "\0"
 
+// Constants
+#define OFFSET 0x36
+#define DIB_SIZE 0x28
+#define PLANES 0x01
+#define BPP 0x18
+#define TYPE 0x4d42
+#define R 0x72
+#define G 0x67
+#define B 0x62
+
 /**
  * Structure contains information about the type, size, layout, dimensions
  * and color format of a BMP file. Size of structure is 54 bytes.
