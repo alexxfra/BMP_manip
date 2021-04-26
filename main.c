@@ -1,6 +1,8 @@
 #include "bmp.h"
 #include "transformations.h"
 #include "math.h"
+#include <unistd.h>
+#include <getopt.h>
 
 // BMP
 struct bmp_header* read_bmp_header(FILE* stream) {
@@ -67,12 +69,21 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
     size_t pxcount = header->width * header->height;
     struct pixel *pxarr = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
 
+    // Calculate padding
+    short paddingAmount = ((header->width * 24 + 31) / 32) * 4 - header->width * 3;
+
     // Read pixel data
+    long index;
+
     fseek(stream, 54, SEEK_SET);
-    for (size_t i = 0; i < pxcount; i++) {
-        fread(&pxarr[i].blue, 1, 1, stream);
-        fread(&pxarr[i].green, 1, 1, stream);
-        fread(&pxarr[i].red, 1, 1, stream);
+    for (size_t h = 0; h < header->height; h++) {
+        for (size_t w = 0; w < header->width; w++) {
+            index = (h * header->width) + w;
+            fread(&pxarr[index].blue, 1, 1, stream);
+            fread(&pxarr[index].green, 1, 1, stream);
+            fread(&pxarr[index].red, 1, 1, stream);
+        }
+        fseek(stream, paddingAmount, SEEK_CUR);
     }
 
     return pxarr;
@@ -125,14 +136,22 @@ bool write_bmp(FILE* stream, const struct bmp_image* image) {
     fwrite(&image->header->num_colors, 4, 1, stream);
     fwrite(&image->header->important_colors, 4, 1, stream);
 
-    // Write data
-    size_t pxcount = image->header->width * image->header->height;
 
-    for (size_t i = 0; i < pxcount; i++) {
-        fwrite(&image->data[i].blue, 1, 1, stream);
-        fwrite(&image->data[i].green, 1, 1, stream);
-        fwrite(&image->data[i].red, 1, 1, stream);
+    // Calculate padding
+    short paddingAmount = ((image->header->width * 24 + 31) / 32) * 4 - image->header->width * 3;
+    
+    // Write data
+    long index;
+    for (size_t h = 0; h < image->header->height; h++) {
+        for (size_t w = 0; w < image->header->width; w++) {
+            index = (h * image->header->width) + w;
+            fwrite(&image->data[index].blue, 1, 1, stream);
+            fwrite(&image->data[index].green, 1, 1, stream);
+            fwrite(&image->data[index].red, 1, 1, stream);
+        }
+        fwrite(PADDING_CHAR, 1, paddingAmount, stream);
     }
+    
     return true;
 }
 
@@ -379,9 +398,9 @@ struct bmp_image* scale(const struct bmp_image* image, float factor) {
 
     for (size_t h = 0; h < new_height; h++) {
         for (size_t w = 0; w < new_height; w++) {
-            newx = (w * source_width) / new_width;
-            newy = (h * source_height) / new_height;
-            printf("new x: %d\tnew y: %d\nold x: %d\told y: %d\n\n", w, h, newx, newy);
+            // newx = (w * source_width) / new_width;
+            // newy = (h * source_height) / new_height;
+            //printf("new x: %d\tnew y: %d\nold x: %d\told y: %d\n\n", w, h, newx, newy);
 
             newImage->data[(h * new_width) + w].blue = image->data[((h * source_height)/new_height) * source_height + ((w * source_width) / new_width)].blue;
             newImage->data[(h * new_width) + w].red = image->data[((h * source_height)/new_height) * source_height + ((w * source_width) / new_width)].red;
@@ -456,25 +475,31 @@ struct bmp_image* extract(const struct bmp_image* image, const char* colors_to_k
 }
 
 
-int main (void) {
-
+int main (int argc, char *argv[]) {    
+    
     struct bmp_image *img;
     
     //Read image
-    FILE *testfile = fopen("assets/mushroom.bmp", "rb");
+    FILE *testfile = fopen("assets/old.monk.bmp", "rb");
     img = read_bmp(testfile);
     fclose(testfile);
 
     struct bmp_image *flip;
-    flip = scale(img, 4);
+    flip = scale(img, 3.4);
 
     testfile = fopen("assets/testout.bmp", "wb");
     write_bmp(testfile, flip);
     fclose(testfile);
 
-
-
-    
+    // bool rotateRight = 0;
+    // bool rotateLeft = 0;
+    // bool flipHor = 0;
+    // bool flipvert = 0;
+    // bool crop = 0;
+    // bool scale = 0;
+    // bool extract = 0;
+    // bool inputSpecified = 0;
+    // bool outputSpecified = 0;
     
     return 0;
 }

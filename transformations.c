@@ -211,8 +211,8 @@ struct bmp_image* scale(const struct bmp_image* image, float factor) {
         new_height = round(source_height * factor);
         new_pxcount = new_width * new_height;
     }
-    printf("OW: %d\nOH: %d\nOP: %d\n", source_width, source_height, source_pxcount);
-    printf("NW: %d\nNH: %d\nNP: %d\n", new_width, new_height, new_pxcount);
+    //printf("OW: %d\nOH: %d\nOP: %d\n", source_width, source_height, source_pxcount);
+    //printf("NW: %d\nNH: %d\nNP: %d\n", new_width, new_height, new_pxcount);
 
 
     // Alloc
