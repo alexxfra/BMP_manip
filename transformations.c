@@ -1,4 +1,5 @@
 #include "transformations.h"
+#include "math.h"
 
 struct bmp_image* flip_horizontally(const struct bmp_image* image) {
 
