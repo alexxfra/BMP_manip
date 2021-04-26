@@ -21,7 +21,6 @@ struct bmp_image* flip_horizontally(const struct bmp_image* image) {
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
     // Flip data horizontally
     for (size_t h = 0; h < height; h++) {
@@ -55,7 +54,6 @@ struct bmp_image* flip_vertically(const struct bmp_image* image) {
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
     // Flip data vertically
     for (size_t h = 0; h < height; h++) {
@@ -90,7 +88,6 @@ struct bmp_image* rotate_right(const struct bmp_image* image) {
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
     // Turn right
     for (size_t w = 0; w < width; w++) {
@@ -124,7 +121,6 @@ struct bmp_image* rotate_left(const struct bmp_image* image) {
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
     // Turn left 
     for (size_t w = 0; w < width; w++) {
@@ -173,7 +169,6 @@ struct bmp_image* crop(const struct bmp_image* image, const uint32_t start_y, co
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = pxcount * 3;
 
     for (size_t h = 0; h < height; h++) {
         for (size_t w = 0; w < width; w++) {
@@ -211,9 +206,6 @@ struct bmp_image* scale(const struct bmp_image* image, float factor) {
         new_height = round(source_height * factor);
         new_pxcount = new_width * new_height;
     }
-    //printf("OW: %d\nOH: %d\nOP: %d\n", source_width, source_height, source_pxcount);
-    //printf("NW: %d\nNH: %d\nNP: %d\n", new_width, new_height, new_pxcount);
-
 
     // Alloc
     struct bmp_image *newImage = (struct bmp_image*) malloc(sizeof(struct bmp_image));
@@ -229,20 +221,13 @@ struct bmp_image* scale(const struct bmp_image* image, float factor) {
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
-    int newx, newy;
-
-    for (size_t h = 0; h < new_height; h++) {
-        for (size_t w = 0; w < new_height; w++) {
-            newx = (w * source_width) / new_width;
-            newy = (h * source_height) / new_height;
-            printf("new x: %d\tnew y: %d\nold x: %d\told y: %d\n\n", w, h, newx, newy);
-
-            newImage->data[(h * new_width) + w].blue = image->data[((h * source_height)/new_height) * source_height + ((w * source_width) / new_width)].blue;
-            newImage->data[(h * new_width) + w].red = image->data[((h * source_height)/new_height) * source_height + ((w * source_width) / new_width)].red;
-            newImage->data[(h * new_width) + w].green = image->data[((h * source_height)/new_height) * source_height + ((w * source_width) / new_width)].green;
-        }
+    for (size_t hIndex = 0; hIndex < new_height; hIndex++) {
+        for (size_t wIndex = 0; wIndex < new_width; wIndex++) {
+            newImage->data[(hIndex * new_width) + wIndex].blue = image->data[((hIndex*source_height)/new_height)*source_width + (wIndex * source_width)/new_width].blue;
+            newImage->data[(hIndex * new_width) + wIndex].green = image->data[((hIndex*source_height)/new_height)*source_width + (wIndex * source_width)/new_width].green;
+            newImage->data[(hIndex * new_width) + wIndex].red = image->data[((hIndex*source_height)/new_height)*source_width + (wIndex * source_width)/new_width].red;
+        }        
     }
     return newImage;
 }
@@ -298,7 +283,6 @@ struct bmp_image* extract(const struct bmp_image* image, const char* colors_to_k
     newImage->header->dib_size = DIB_SIZE;
     newImage->header->bpp = BPP;
     newImage->header->planes = PLANES;
-    newImage->header->image_size = newImage->header->size - OFFSET;
 
     for (size_t w = 0; w < width; w++) {
         for (size_t h = 0; h < height; h++) {
@@ -310,3 +294,4 @@ struct bmp_image* extract(const struct bmp_image* image, const char* colors_to_k
 
     return newImage;
 }
+

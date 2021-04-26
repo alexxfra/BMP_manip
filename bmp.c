@@ -43,7 +43,6 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     newH->dib_size = DIB_SIZE;
     newH->planes = PLANES;
     newH->bpp = BPP;
-    newH->image_size = newH->size - OFFSET;   // OR 0 NOT SURE IF ITS NEEDED YET
 
     return newH;
 }
@@ -64,12 +63,21 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
     size_t pxcount = header->width * header->height;
     struct pixel *pxarr = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
 
+    // Calculate padding
+    short paddingAmount = ((header->width * 24 + 31) / 32) * 4 - header->width * 3;
+
     // Read pixel data
+    long index;
+
     fseek(stream, 54, SEEK_SET);
-    for (size_t i = 0; i < pxcount; i++) {
-        fread(&pxarr[i].blue, 1, 1, stream);
-        fread(&pxarr[i].green, 1, 1, stream);
-        fread(&pxarr[i].red, 1, 1, stream);
+    for (size_t h = 0; h < header->height; h++) {
+        for (size_t w = 0; w < header->width; w++) {
+            index = (h * header->width) + w;
+            fread(&pxarr[index].blue, 1, 1, stream);
+            fread(&pxarr[index].green, 1, 1, stream);
+            fread(&pxarr[index].red, 1, 1, stream);
+        }
+        fseek(stream, paddingAmount, SEEK_CUR);
     }
 
     return pxarr;
@@ -122,14 +130,22 @@ bool write_bmp(FILE* stream, const struct bmp_image* image) {
     fwrite(&image->header->num_colors, 4, 1, stream);
     fwrite(&image->header->important_colors, 4, 1, stream);
 
-    // Write data
-    size_t pxcount = image->header->width * image->header->height;
 
-    for (size_t i = 0; i < pxcount; i++) {
-        fwrite(&image->data[i].blue, 1, 1, stream);
-        fwrite(&image->data[i].green, 1, 1, stream);
-        fwrite(&image->data[i].red, 1, 1, stream);
+    // Calculate padding
+    short paddingAmount = ((image->header->width * 24 + 31) / 32) * 4 - image->header->width * 3;
+    
+    // Write data
+    long index;
+    for (size_t h = 0; h < image->header->height; h++) {
+        for (size_t w = 0; w < image->header->width; w++) {
+            index = (h * image->header->width) + w;
+            fwrite(&image->data[index].blue, 1, 1, stream);
+            fwrite(&image->data[index].green, 1, 1, stream);
+            fwrite(&image->data[index].red, 1, 1, stream);
+        }
+        fwrite(PADDING_CHAR, 1, paddingAmount, stream);
     }
+    
     return true;
 }
 
@@ -139,3 +155,4 @@ void free_bmp_image(struct bmp_image* image) {
     free(image->data);
     free(image);
 }
+
