@@ -18,14 +18,12 @@ struct bmp_header* read_bmp_header(FILE* stream) {
 
     // Check corr
     if (ret < 1) {
-         printf("Error: This is not a BMP file.");
          free(newH);
          return NULL;
     }
 
     // Check val
-    if (newH->type != TYPE) {
-        printf("Error: Corrupted BMP file.");
+    if (newH->type != 0x4d42) {
         free(newH);
         return NULL;
     }
@@ -38,11 +36,17 @@ struct bmp_header* read_bmp_header(FILE* stream) {
     fread(&newH->width, 4, 1, stream);
     fread(&newH->height, 4, 1, stream);
 
+    // Read X/Ypm
+    fseek(stream,38,SEEK_SET);
+    fread(&newH->x_ppm, 4, 1, stream);
+    fread(&newH->y_ppm, 4, 1, stream);
+
     // Writing constant data
-    newH->offset = OFFSET;
-    newH->dib_size = DIB_SIZE;
-    newH->planes = PLANES;
-    newH->bpp = BPP;
+    newH->offset = 0x36;
+    newH->dib_size = 0x28;
+    newH->planes = 0x01;
+    newH->bpp = 0x18;
+    newH->image_size = newH->size - 54;
 
     return newH;
 }
@@ -59,6 +63,17 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
         return NULL;
     }
 
+    // Check data size
+    fseek(stream, 0, SEEK_END);
+    size_t dataEnd = ftell(stream);
+
+    fseek(stream, 54, SEEK_SET);
+    size_t dataStart = ftell(stream);
+
+    if (dataEnd - dataStart != header->size - 54) {
+        return NULL;
+    }
+
     // Create pixel structure
     size_t pxcount = header->width * header->height;
     struct pixel *pxarr = (struct pixel*) calloc(pxcount, sizeof(struct pixel));
@@ -68,8 +83,7 @@ struct pixel* read_data(FILE* stream, const struct bmp_header* header) {
 
     // Read pixel data
     long index;
-
-    fseek(stream, 54, SEEK_SET);
+    
     for (size_t h = 0; h < header->height; h++) {
         for (size_t w = 0; w < header->width; w++) {
             index = (h * header->width) + w;
@@ -91,14 +105,16 @@ struct bmp_image* read_bmp(FILE* stream) {
     // Load header
     newImage->header = read_bmp_header(stream);
     if (newImage->header == NULL) {
-        free(newImage);
+        fprintf(stderr, "Error: This is not a BMP file.\n");
+        free_bmp_image(newImage);
         return NULL;
     }
 
     // Load data
     newImage->data = read_data(stream, newImage->header);
     if (newImage->data == NULL) {
-        free(newImage);
+        fprintf(stderr, "Error: Corrupted BMP file.\n");
+        free_bmp_image(newImage);
         return NULL;
     }
     
@@ -150,9 +166,14 @@ bool write_bmp(FILE* stream, const struct bmp_image* image) {
 }
 
 void free_bmp_image(struct bmp_image* image) {
+    if (image != NULL) {
+        if (image->header != NULL) {
+            free(image->header);
+        }
 
-    free(image->header);
-    free(image->data);
-    free(image);
+        if (image->data != NULL) {
+            free(image->data);
+        }
+        free(image);
+    }
 }
-

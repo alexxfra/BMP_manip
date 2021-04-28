@@ -1,39 +1,24 @@
 #include "bmp.h"
 #include "transformations.h"
+#include "math.h"
+
 
 int main (int argc, char *argv[]) {    
     
-    struct bmp_image *img;
-    
-    //Read image
-    FILE *testfile = fopen("assets/old.monk.bmp", "rb");
-    img = read_bmp(testfile);
-    if (img == NULL) {
-        free_bmp_image(img);
-        exit(1);
-    }
-    fclose(testfile);
+    FILE* stream = fopen("assets/square.4x2.bmp", "rb");
+    struct bmp_image* image = read_bmp(stream);
+    fclose(stream);
 
-    struct bmp_image *vert = flip_vertically(img);
-    struct bmp_image *hor = flip_horizontally(img);
-    struct bmp_image *cr = crop(img, 0, 0, 30, 30);
-    struct bmp_image *lt = rotate_left(img);
-    struct bmp_image *rt = rotate_right(img);
-    struct bmp_image *sc = scale(img, 2);
-    struct bmp_image *et = extract(img, "rgb");
-    
-    testfile = fopen("assets/testout.bmp", "wb");
-    write_bmp(testfile, sc);
-    fclose(testfile);
-    free_bmp_image(img);
-    free_bmp_image(vert);
-    free_bmp_image(hor);
-    free_bmp_image(cr);
-    free_bmp_image(lt);
-    free_bmp_image(rt);
-    free_bmp_image(sc);
-    free_bmp_image(et);
+    struct bmp_image* fright = rotate_right(image);
+    //struct bmp_image* fleft = extract(fright, "r");
 
+    FILE *out = fopen("assets/testout.bmp", "wb");
+    write_bmp(out, fright);
+    fclose(out);
+    // int w = 1;
+    // int h = 1;
+
+    // printf("%d",((w * 24 + 31) / 32) * 4 * h);
 
     return 0;
 }

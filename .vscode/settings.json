@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "transformations.h": "c"
+        "transformations.h": "c",
+        "limits": "c"
     }
 }
